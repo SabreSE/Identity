@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -16,12 +17,14 @@ namespace IdentityManagerServerApi.Controllers
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _config;
 
-        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, IConfiguration config)
+        public AccountController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration config)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _roleManager = roleManager;
             _config = config;
         }
 
@@ -55,8 +58,8 @@ namespace IdentityManagerServerApi.Controllers
             var roles = await userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {
-                // Assuming you have a method to get permissions for a role
-                var rolePermissions = GetPermissionsForRole(role);
+                // Await the asynchronous call to get the result
+                var rolePermissions = await GetPermissionsForRoleAsync(role);
                 permissions.AddRange(rolePermissions);
             }
 
@@ -64,44 +67,20 @@ namespace IdentityManagerServerApi.Controllers
         }
 
 
-        private List<string> GetPermissionsForRole(string role)
+
+        private async Task<List<string>> GetPermissionsForRoleAsync(string roleName)
         {
-            // For debugging purposes, manually add permissions based on role
-            // In a real application, you would fetch these from a database or some external source
-
-            var permissions = new List<string>();
-
-            switch (role)
+            var role = await _roleManager.FindByNameAsync(roleName);
+            if (role == null)
             {
-                case "SuperAdmin":
-                    permissions.Add("Permissions.Products.Create");
-                    //permissions.Add("Permissions.Products.View");
-                    permissions.Add("Permissions.Products.Edit");
-                    permissions.Add("Permissions.Products.Delete");
-                    // Add more permissions as needed
-                    break;
-                case "Admin":
-                    //permissions.Add("Permissions.Products.View");
-                    permissions.Add("Permissions.Products.Edit");
-                    // Add more permissions as needed
-                    break;
-                case "Basic":
-                    //permissions.Add("Permissions.Products.View");
-                    // Add more permissions as needed
-                    break;
-                    // Add more roles and their respective permissions as needed
+                return new List<string>(); // Role not found
             }
 
-            return permissions;
+            var claims = await _roleManager.GetClaimsAsync(role);
+            var permissions = claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList();
+
+            return permissions; // Return permissions for the role
         }
-
-        //private List<string> GetPermissionsForRole(string role)
-        //{
-        //    // Implement logic to get permissions based on role
-        //    // For example, query from database or use predefined mappings
-        //    return new List<string>(); // Return permissions for the role
-        //}
-
 
         private async Task<string> GenerateJwtToken(IdentityUser user)
         {
@@ -138,6 +117,35 @@ namespace IdentityManagerServerApi.Controllers
     }
 }
 
+//Debug code
+//private List<string> GetPermissionsForRole(string role)
+//{
+//    // For debugging purposes, manually add permissions based on role
+//    // In a real application, you would fetch these from a database or some external source
 
+//    var permissions = new List<string>();
 
+//    switch (role)
+//    {
+//        case "SuperAdmin":
+//            permissions.Add("Permissions.Products.Create");
+//            //permissions.Add("Permissions.Products.View");
+//            permissions.Add("Permissions.Products.Edit");
+//            permissions.Add("Permissions.Products.Delete");
+//            // Add more permissions as needed
+//            break;
+//        case "Admin":
+//            //permissions.Add("Permissions.Products.View");
+//            permissions.Add("Permissions.Products.Edit");
+//            // Add more permissions as needed
+//            break;
+//        case "Basic":
+//            //permissions.Add("Permissions.Products.View");
+//            // Add more permissions as needed
+//            break;
+//            // Add more roles and their respective permissions as needed
+//    }
+
+//    return permissions;
+//}
 
