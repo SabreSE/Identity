@@ -47,6 +47,62 @@ namespace IdentityManagerServerApi.Controllers
             return Unauthorized("Invalid login attempt.");
         }
 
+
+        private async Task<List<string>> GetUserPermissions(UserManager<IdentityUser> userManager, IdentityUser user)
+        {
+            var permissions = new List<string>();
+
+            var roles = await userManager.GetRolesAsync(user);
+            foreach (var role in roles)
+            {
+                // Assuming you have a method to get permissions for a role
+                var rolePermissions = GetPermissionsForRole(role);
+                permissions.AddRange(rolePermissions);
+            }
+
+            return permissions.Distinct().ToList();
+        }
+
+
+        private List<string> GetPermissionsForRole(string role)
+        {
+            // For debugging purposes, manually add permissions based on role
+            // In a real application, you would fetch these from a database or some external source
+
+            var permissions = new List<string>();
+
+            switch (role)
+            {
+                case "SuperAdmin":
+                    permissions.Add("Permissions.Products.Create");
+                    //permissions.Add("Permissions.Products.View");
+                    permissions.Add("Permissions.Products.Edit");
+                    permissions.Add("Permissions.Products.Delete");
+                    // Add more permissions as needed
+                    break;
+                case "Admin":
+                    //permissions.Add("Permissions.Products.View");
+                    permissions.Add("Permissions.Products.Edit");
+                    // Add more permissions as needed
+                    break;
+                case "Basic":
+                    //permissions.Add("Permissions.Products.View");
+                    // Add more permissions as needed
+                    break;
+                    // Add more roles and their respective permissions as needed
+            }
+
+            return permissions;
+        }
+
+        //private List<string> GetPermissionsForRole(string role)
+        //{
+        //    // Implement logic to get permissions based on role
+        //    // For example, query from database or use predefined mappings
+        //    return new List<string>(); // Return permissions for the role
+        //}
+
+
         private async Task<string> GenerateJwtToken(IdentityUser user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -57,6 +113,12 @@ namespace IdentityManagerServerApi.Controllers
                 new Claim(ClaimTypes.Name, user.UserName),
                 // other claims
             };
+
+            var userPermissions = await GetUserPermissions(_userManager, user);
+            foreach (var permission in userPermissions)
+            {
+                claims.Add(new Claim("Permission", permission));
+            }
 
             var roles = await _userManager.GetRolesAsync(user);
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));

@@ -1,3 +1,4 @@
+using IdentityManagerServerApi.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,8 @@ namespace IdentityManagerServerApi.Controllers
         }
 
         [HttpGet("admin")]
-        [Authorize(Roles = "SuperAdmin")]
+        //[Authorize(Roles = "SuperAdmin")]
+        [Authorize(Permissions.Products.View)] // Apply the view permission
         public IEnumerable<WeatherForecast> GetForecastByAdmin()
         {
             return Enumerable.Range(1, 10).Select(index => new WeatherForecast
