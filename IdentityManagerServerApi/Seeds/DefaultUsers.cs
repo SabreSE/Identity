@@ -24,7 +24,14 @@ namespace IdentityManagerServerApi.Seeds
                     await userManager.CreateAsync(defaultUser, "123Pa$$word!");
                     await userManager.AddToRoleAsync(defaultUser, Roles.Basic.ToString());
                 }
+                await roleManager.SeedClaimsForBasicUser();
             }
+        }
+
+        private async static Task SeedClaimsForBasicUser(this RoleManager<IdentityRole> roleManager)
+        {
+            var adminRole = await roleManager.FindByNameAsync("Basic");
+            await roleManager.AddPermissionClaim(adminRole, "Products");
         }
 
         public static async Task SeedSuperAdminAsync(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
@@ -54,7 +61,7 @@ namespace IdentityManagerServerApi.Seeds
         private async static Task SeedClaimsForSuperAdmin(this RoleManager<IdentityRole> roleManager)
         {
             var adminRole = await roleManager.FindByNameAsync("SuperAdmin");
-            await roleManager.AddPermissionClaim(adminRole, "Products");
+            await roleManager.AddPermissionClaim(adminRole, "Users");
         }
 
         public static async Task AddPermissionClaim(this RoleManager<IdentityRole> roleManager, IdentityRole role, string module)

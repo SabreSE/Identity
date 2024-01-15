@@ -1,4 +1,6 @@
 ﻿using IdentityManagerServerApi.Constants;
+using IdentityManagerServerApi.Models;
+using IdentityManagerServerApi.Seeds;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +12,7 @@ namespace IdentityManagerServerApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin")]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
@@ -28,23 +31,86 @@ namespace IdentityManagerServerApi.Controllers
             return Ok(users);
         }
 
-        [Authorize]
-        [HttpGet("current")]
-        public IActionResult GetCurrent()
+
+        [HttpPost("CreateUser")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserModel model)
         {
-            // Retrieve the user's identity from HttpContext
-            var identity = HttpContext.User.Identity as ClaimsIdentity;
-
-            if (identity != null)
+            if (!ModelState.IsValid)
             {
-                // Get the user's ID or username from the claims
-                var userId = identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = identity.FindFirst(ClaimTypes.Name)?.Value;
-
-                return Ok(new { UserId = userId, UserName = userName });
+                return BadRequest(ModelState);
             }
 
-            return Unauthorized("User is not authenticated.");
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                return BadRequest("User already exists.");
+            }
+
+            var newUser = new IdentityUser
+            {
+                UserName = model.Email, // Or a separate UserName if your model includes it
+                Email = model.Email,
+                EmailConfirmed = true // Handle email confirmation as per your logic
+            };
+
+            var createUserResult = await _userManager.CreateAsync(newUser, model.Password);
+            if (!createUserResult.Succeeded)
+            {
+                return BadRequest(createUserResult.Errors);
+            }
+
+            // Add the new user to the "Basic" role
+            var addToRoleResult = await _userManager.AddToRoleAsync(newUser, "Basic");
+            if (!addToRoleResult.Succeeded)
+            {
+                // Handle the case where adding to the role fails
+                return BadRequest(addToRoleResult.Errors);
+            }
+
+            return Ok("User created and added to Basic role successfully.");
         }
+
+
+
+
+
+        //[HttpPost("CreateUser")]
+        //public async Task<IActionResult> CreateUser(string email, string password, string role = "Basic")
+        //{
+        //    // Validate input
+        //    if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        //    {
+        //        return BadRequest("Email and password are required.");
+        //    }
+
+        //    // Check if the user already exists
+        //    var existingUser = await _userManager.FindByEmailAsync(email);
+        //    if (existingUser != null)
+        //    {
+        //        return BadRequest("User already exists.");
+        //    }
+
+        //    var newUser = new IdentityUser
+        //    {
+        //        UserName = email,
+        //        Email = email,
+        //        EmailConfirmed = true, // You might want to send confirmation email instead
+        //        PhoneNumberConfirmed = true // Depends on your requirement
+        //    };
+
+        //    var result = await _userManager.CreateAsync(newUser, password);
+        //    if (!result.Succeeded)
+        //    {
+        //        return BadRequest(result.Errors);
+        //    }
+
+        //    // Add to role, if role management is necessary
+        //    if (!string.IsNullOrEmpty(role))
+        //    {
+        //        await _userManager.AddToRoleAsync(newUser, role);
+        //    }
+
+        //    return Ok("User created successfully.");
+        //}
     }
 }

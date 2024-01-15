@@ -1,4 +1,5 @@
 ﻿using IdentityManagerServerApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using static IdentityManagerServerApi.Constants.Permissions;
 
 namespace IdentityManagerServerApi.Controllers
 {
@@ -113,6 +115,26 @@ namespace IdentityManagerServerApi.Controllers
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        [Authorize]
+        [HttpGet("current")]
+        public IActionResult GetCurrent()
+        {
+            // Retrieve the user's identity from HttpContext
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+
+            if (identity != null)
+            {
+                // Get the user's ID or username from the claims
+                //var userId = identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = identity.FindFirst(ClaimTypes.Name)?.Value;
+
+                //return Ok(new { UserId = userId, UserName = userName });
+                return Ok(new { UserName = userName });
+            }
+
+            return Unauthorized("User is not authenticated.");
         }
     }
 }

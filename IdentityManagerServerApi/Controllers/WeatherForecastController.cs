@@ -21,8 +21,8 @@ namespace IdentityManagerServerApi.Controllers
         }
 
         [HttpGet("admin")]
-        //[Authorize(Roles = "SuperAdmin")]
-        [Authorize(Permissions.Products.View)] // Apply the view permission
+        [Authorize(Roles = "SuperAdmin")]
+        //[Authorize(Permissions.Products.View)] // Apply the view permission
         public IEnumerable<WeatherForecast> GetForecastByAdmin()
         {
             return Enumerable.Range(1, 10).Select(index => new WeatherForecast
@@ -35,7 +35,8 @@ namespace IdentityManagerServerApi.Controllers
         }
 
         [HttpGet("user")]
-        [Authorize(Roles = "User")]
+        //[Authorize(Roles = "User")]
+        [Authorize(Permissions.Products.View)] // Apply the view permission
         public IEnumerable<WeatherForecast> GetForecastByUser()
         {
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
