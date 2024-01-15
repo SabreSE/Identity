@@ -42,6 +42,7 @@ namespace IdentityManagerServerApi.Seeds
                 UserName = "superadmin@gmail.com",
                 Email = "superadmin@gmail.com",
                 EmailConfirmed = true,
+
                 PhoneNumberConfirmed = true,
             };
             if (userManager.Users.All(u => u.Id != defaultUser.Id))
